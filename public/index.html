@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Swag Labs - SDET Lab</title>
+  <style>
+    /* ... 保持原本 body, login_container 等樣式 ... */
+    body { margin: 0; padding: 0; font-family: "DM Sans", Arial, sans-serif; background-color: #474c55 !important; }
+    .login_container { background-color: #474c55; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; }
+    .login_logo { font-size: 44px; font-weight: bold; color: #ffffff; padding: 50px 0 20px 0; letter-spacing: -1px; }
+    .login_wrapper { background-color: #ffffff; padding: 30px; border-radius: 4px; width: 90%; max-width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); position: relative; }
+    
+    /* 遮罩樣式 Overlay */
+    #loading-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none; /* 預設隱藏 */
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      color: white;
+      flex-direction: column;
+    }
+    .spinner {
+      width: 50px; height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3ddc84;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 10px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* 其他輔助樣式保持不變... */
+    .login_credentials_wrap { margin-top: 30px; color: #ffffff; width: 90%; max-width: 440px; font-size: 13px; }
+    .login_credentials, .login_password { background-color: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 15px; margin-bottom: 10px; }
+    h4 { margin: 0 0 8px 0; color: #3ddc84; }
+    #shadow-host { width: 100%; }
+  </style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div>Connecting to API...</div>
+</div>
+
+<div class="login_container">
+  <div class="login_logo">WITS Labs</div>
+  <div class="login_wrapper">
+    <div id="shadow-host"></div>
+  </div>
+  <div class="login_credentials_wrap">
+    <div class="login_credentials">
+      <h4>Accepted usernames:</h4>
+      standard_user
+    </div>
+    <div class="login_password">
+      <h4>Password:</h4>
+      secret_sauce
+    </div>
+  </div>
+</div>
+
+<script>
+  const host = document.querySelector('#shadow-host');
+  const root = host.attachShadow({mode: 'open'});
+  const loader = document.getElementById('loading-overlay');
+
+  // 控制遮罩開關
+  const showLoader = (show) => loader.style.display = show ? 'flex' : 'none';
+
+  const shadowStyle = `
+    .form_group { margin-bottom: 15px; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 15px; box-sizing: border-box; }
+    input:focus, select:focus { outline: none; border-color: #3ddc84; }
+    .submit-button { width: 100%; padding: 14px; background-color: #3ddc84; border: none; border-radius: 4px; color: #132322; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
+    .error-message-container { background-color: #e2231a; color: #ffffff; padding: 12px; margin-bottom: 15px; border-radius: 4px; font-size: 14px; display: none; text-align: center; font-weight: bold; }
+    .order-header { border-bottom: 2px solid #f0f0f0; margin-bottom: 20px; padding-bottom: 10px; }
+    .order-title { color: #132322; margin: 0; font-size: 20px; }
+    label { font-size: 13px; color: #495057; font-weight: 600; margin-bottom: 5px; display: block; }
+    .status-msg { margin-top: 15px; font-weight: bold; text-align: center; min-height: 20px; }
+    .logout-link { display: block; text-align: right; font-size: 12px; color: #007bff; text-decoration: none; margin-bottom: 10px; cursor: pointer; }
+  `;
+
+  const renderLogin = () => {
+    root.innerHTML = `
+      <style>${shadowStyle}</style>
+      <div class="error-message-container" id="error-box"></div>
+      <div class="form_group">
+        <input type="text" id="user-name" placeholder="Username">
+      </div>
+      <div class="form_group">
+        <input type="password" id="password" placeholder="Password">
+      </div>
+      <input type="submit" class="submit-button" value="Login" id="login-button">
+    `;
+
+    root.querySelector('#login-button').onclick = (e) => {
+      e.preventDefault();
+      const u = root.querySelector('#user-name').value;
+      const p = root.querySelector('#password').value;
+      const errorBox = root.querySelector('#error-box');
+
+      // --- 1. 前端判斷 (Client-side Validation) ---
+      const validUsers = ['standard_user', 'problem_user', 'performance_glitch_user', 'error_user', 'visual_user', 'locked_out_user'];
+      
+      if (p !== 'secret_sauce') {
+        errorBox.innerText = "Epic sadface: Password is incorrect";
+        errorBox.style.display = 'block';
+        return;
+      }
+      
+      if (!validUsers.includes(u)) {
+        errorBox.innerText = "Epic sadface: Username and password do not match any user in this service";
+        errorBox.style.display = 'block';
+        return;
+      }
+
+      // --- 2. 通過前端檢查後，啟動遮罩並呼叫 API ---
+      showLoader(true);
+      errorBox.style.display = 'none';
+
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', payload: JSON.stringify({username: u, password: p}) })
+      })
+      .then(res => res.json())
+      .then(res => {
+        showLoader(false);
+        if (res.success) {
+          renderOrderSystem(res.products, res.availableUsers, u);
+        } else {
+          errorBox.innerText = res.message;
+          errorBox.style.display = 'block';
+        }
+      })
+      .catch(err => {
+        showLoader(false);
+        errorBox.innerText = "Network Error: API is unreachable.";
+        errorBox.style.display = 'block';
+      });
+    };
+  };
+
+  const renderOrderSystem = (products, users, currentUsername) => {
+    const productOptions = products.map(p => `<option value="${p.id}">${p.name} ($${p.price})</option>`).join('');
+    const userOptions = users.map(u => `<option value="${u.id}">${u.name} (${u.role})</option>`).join('');
+
+    root.innerHTML = `
+      <style>${shadowStyle}</style>
+      <div class="order-header">
+        <span class="logout-link" id="logout">Logout</span>
+        <h3 class="order-title">Checkout</h3>
+      </div>
+      <p style="font-size:13px; color:#6c757d; margin-top:0;">Logged in as: <b>${currentUsername}</b></p>
+      <div class="form_group">
+        <label>Customer Name</label>
+        <select id="target-user-id"><option value="">-- Select --</option>${userOptions}</select>
+      </div>
+      <div class="form_group">
+        <label>Select Product</label>
+        <select id="prod-select"><option value="">-- Select --</option>${productOptions}</select>
+      </div>
+      <input type="submit" class="submit-button" style="background-color:#132322; color:white;" value="Complete Purchase" id="place-order-btn">
+      <div id="status-msg" class="status-msg"></div>
+    `;
+
+    root.querySelector('#logout').onclick = () => renderLogin();
+
+    root.querySelector('#place-order-btn').onclick = () => {
+      const uid = root.querySelector('#target-user-id').value;
+      const pid = root.querySelector('#prod-select').value;
+      const msg = root.querySelector('#status-msg');
+
+      if(!uid || !pid) {
+        msg.innerText = "Please select both customer and product.";
+        msg.style.color = "#e2231a";
+        return;
+      }
+
+      msg.innerText = ''; // 清空上一次的狀態訊息
+      showLoader(true);   // 開啟 Loading 遮罩
+
+      // --- 這裡必須是標準 fetch，不能是 google.script.run ---
+      fetch('/api/action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'createOrder',
+          payload: JSON.stringify({
+            userId: uid,
+            productId: pid,
+            currentUser: currentUsername
+          })
+        })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+      })
+      .then(res => {
+        showLoader(false); // 關閉遮罩
+        msg.innerText = res.message;
+        msg.style.color = res.success ? "#28a745" : "#e2231a";
+      })
+      .catch(err => {
+        showLoader(false); // 關閉遮罩
+        msg.innerText = "Network Error: Failed to submit order.";
+        msg.style.color = "#e2231a";
+        console.error("Fetch Error:", err);
+      });
+    };
+  };
+
+  renderLogin();
+</script>
+</body>
+</html>
