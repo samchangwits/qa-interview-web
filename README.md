@@ -82,13 +82,16 @@ docker build -t wits-lab .
 docker rm -f my-wits-lab
 
 # 3. 運行容器 (啟用 Volume 掛載以實現即時免重啟同步)
+# 注意：不加 --rm，這樣修改 server.js（如密碼）後只需 docker restart，不需重新 run
+# 如果需要換shadow版的話就得砍掉容器重新跑另一個新的容器
+
 # 無shadow DOM版本
 docker run -d \
   -p 8082:8082 \
   -v $(pwd):/app \
   -v /app/node_modules \
   -e INDEX_MODE=noshadow \
-  --name my-wits-lab \
+  --name my-wits-lab-noshadow \
   wits-lab
 
 # 有shadow DOM版本
@@ -97,8 +100,15 @@ docker run -d \
   -v $(pwd):/app \
   -v /app/node_modules \
   -e INDEX_MODE=shadow \
-  --name my-wits-lab \
+  --name my-wits-lab-shadow \
   wits-lab
+
+# 修改 server.js 後（如更換密碼），執行 restart 讓變更生效（不需重新 run）：
+# docker restart my-wits-lab-noshadow
+# docker restart my-wits-lab-shadow
+
+# 面試結束後手動清理容器：
+# docker rm -f my-wits-lab-noshadow my-wits-lab-shadow
 
 
 # 4. 啟動 ngrok 專屬通道對外發布 API/Swagger/wits-lab

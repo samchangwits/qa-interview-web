@@ -30,7 +30,7 @@ async function fetchExternalData() {
     headers: { "ngrok-skip-browser-warning": "true" }
   };
   // 這裡使用你更新後的 9090 port 對外網址
-  const baseUrl = "https://8879-2001-b011-980b-5580-706e-5829-3e62-5c70.ngrok-free.app";
+  const baseUrl = "https://ef72-2001-b011-980b-5ae6-ad7b-4b84-c246-a3d1.ngrok-free.app";
   
   try {
     const [prodRes, userRes] = await Promise.all([
@@ -48,7 +48,7 @@ async function fetchExternalData() {
 app.post('/api/action', async (req, res) => {
   const { action, payload } = req.body;
   const data = JSON.parse(payload);
-  const validPassword = 'secret_sauce';
+  const validPassword = 'secret_0526_sauce';
   
   // 呼叫上方帶有正確網址的 fetchExternalData
   const currentDB = await fetchExternalData();
