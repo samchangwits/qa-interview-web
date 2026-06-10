@@ -504,7 +504,7 @@ async function fetchExternalData() {
     headers: { "ngrok-skip-browser-warning": "true" }
   };
   // 這裡使用你更新後的 9090 port 對外網址
-  const baseUrl = "https://ef72-2001-b011-980b-5ae6-ad7b-4b84-c246-a3d1.ngrok-free.app";
+  const baseUrl = "https://1bee-2001-b011-980a-1bdf-59a2-9faf-c23c-afbb.ngrok-free.app";
   
   try {
     const [prodRes, userRes] = await Promise.all([
@@ -522,7 +522,7 @@ async function fetchExternalData() {
 app.post('/api/action', async (req, res) => {
   const { action, payload } = req.body;
   const data = JSON.parse(payload);
-  const validPassword = 'secret_0526_sauce';
+  const validPassword = 'secret_0612_sauce';
   
   // 呼叫上方帶有正確網址的 fetchExternalData
   const currentDB = await fetchExternalData();
@@ -537,7 +537,7 @@ app.post('/api/action', async (req, res) => {
 
     if (user === 'locked_out_user') {
       return res.json({ success: false, message: "Epic sadface: Sorry, this user has been locked out." });
-    } else if (user === 'standard_user') {
+    } else if (user === 'standard_0612_user') {
       return res.json({ 
         success: true, 
         message: "Welcome back!", 
