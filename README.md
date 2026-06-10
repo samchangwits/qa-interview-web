@@ -85,7 +85,7 @@ docker rm -f my-wits-lab
 # 注意：不加 --rm，這樣修改 server.js（如密碼）後只需 docker restart，不需重新 run
 # 如果需要換shadow版的話就得砍掉容器重新跑另一個新的容器
 
-# scenarioA（預設主題）
+# scenarioA（no shadow login）
 docker run -d \
   -p 8082:8082 \
   -v $(pwd):/app \
@@ -94,7 +94,7 @@ docker run -d \
   --name my-wits-lab-scenarioA \
   wits-lab
 
-# scenarioB
+# scenarioB (shadow login)
 docker run -d \
   -p 8082:8082 \
   -v $(pwd):/app \
@@ -103,7 +103,7 @@ docker run -d \
   --name my-wits-lab-scenarioB \
   wits-lab
 
-# scenarioC
+# scenarioC Reservation page
 docker run -d \
   -p 8082:8082 \
   -v $(pwd):/app \
@@ -112,7 +112,7 @@ docker run -d \
   --name my-wits-lab-scenarioC \
   wits-lab
 
-# scenarioD
+# scenarioD User Management System
 docker run -d \
   -p 8082:8082 \
   -v $(pwd):/app \

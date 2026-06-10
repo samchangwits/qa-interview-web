@@ -12,5 +12,12 @@
     "email": "bob@test.com",
     "role": "SDET",
     "status": "Active"
+  },
+  {
+    "id": 3,
+    "name": "Charlie Brown",
+    "email": "charlie@test.com",
+    "role": "Developer",
+    "status": "Inactive"
   }
 ]

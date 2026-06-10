@@ -2,6 +2,9 @@ const express = require('express');
 const axios = require('axios'); // 取代 UrlFetchApp
 const path = require('path');
 const fs = require('fs/promises');
+const fsSync = require('fs');
+const swaggerUi = require('swagger-ui-express');
+const yaml = require('js-yaml');
 const app = express();
 const PORT = 8082;
 
@@ -48,6 +51,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // 讓 Express 服務靜態網頁，index: false 避免自動回傳 index.html 蓋掉下方路由
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+
+// Swagger UI for User Management(scenarioD)
+const swaggerDoc = yaml.load(fsSync.readFileSync(path.join(__dirname, 'docs/user-management-swagger.yml'), 'utf8'));
+app.use('/api-docs/user-management', swaggerUi.serve, swaggerUi.setup(swaggerDoc, {
+  customSiteTitle: 'User Management API Docs'
+}));
 
 // 根路徑根據 INDEX_MODE 動態回傳對應的 HTML
 app.get('/', (req, res) => {
@@ -315,8 +324,8 @@ async function withScenarioDLock(task) {
   return run;
 }
 
-// GET /api/scenarioD-users - List users with optional search and pagination
-app.get('/api/scenarioD-users', async (req, res) => {
+// GET /api/users - List users with optional search and pagination
+app.get('/api/users', async (req, res) => {
   try {
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
@@ -354,8 +363,8 @@ app.get('/api/scenarioD-users', async (req, res) => {
   }
 });
 
-// POST /api/scenarioD-users - Add new user
-app.post('/api/scenarioD-users', async (req, res) => {
+// POST /api/users - Add new user
+app.post('/api/users', async (req, res) => {
   try {
     const { name, email, role, status } = req.body;
 
@@ -402,8 +411,8 @@ app.post('/api/scenarioD-users', async (req, res) => {
   }
 });
 
-// PUT /api/scenarioD-users/:id - Edit user
-app.put('/api/scenarioD-users/:id', async (req, res) => {
+// PUT /api/users/:id - Edit user
+app.put('/api/users/:id', async (req, res) => {
   try {
     const userId = parseInt(req.params.id, 10);
     const { name, email, role, status } = req.body;
@@ -459,8 +468,8 @@ app.put('/api/scenarioD-users/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/scenarioD-users/:id - Delete user
-app.delete('/api/scenarioD-users/:id', async (req, res) => {
+// DELETE /api/users/:id - Delete user
+app.delete('/api/users/:id', async (req, res) => {
   try {
     const userId = parseInt(req.params.id, 10);
 

@@ -1,0 +1,271 @@
+openapi: 3.0.0
+info:
+  title: User Management API
+  version: 1.0.0
+  description: WITS Labs - User Management API
+
+servers:
+  - url: https://10f2-2001-b011-980a-1bdf-59a2-9faf-c23c-afbb.ngrok-free.app
+    description: ngrok
+  # - url: http://localhost:8082
+  #   description: Local
+
+tags:
+  - name: Users
+    description: User CRUD operations
+
+paths:
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Get user list (supports pagination and search)
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: Number of records to skip
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of records per page
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Search by name (partial match)
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Active, Inactive]
+          description: Filter by status
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  total:
+                    type: integer
+                    example: 3
+                  offset:
+                    type: integer
+                    example: 0
+                  limit:
+                    type: integer
+                    example: 10
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags: [Users]
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+            example:
+              name: Jane Doe
+              email: jane@test.com
+              role: QA
+              status: Active
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User added successfully
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/users/{id}:
+    put:
+      tags: [Users]
+      summary: Update an existing user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+            example:
+              name: Alice Updated
+              email: alice_new@test.com
+              role: SDET
+              status: Inactive
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User updated successfully
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags: [Users]
+      summary: Delete a user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User deleted successfully
+                  user:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Alice Johnson
+        email:
+          type: string
+          format: email
+          example: alice@test.com
+        role:
+          type: string
+          enum: [QA, SDET, Developer, Manager]
+          example: QA
+        status:
+          type: string
+          enum: [Active, Inactive]
+          example: Active
+
+    UserInput:
+      type: object
+      required: [name, email, role, status]
+      properties:
+        name:
+          type: string
+          example: Alice Johnson
+        email:
+          type: string
+          format: email
+          example: alice@test.com
+        role:
+          type: string
+          enum: [QA, SDET, Developer, Manager]
+          example: QA
+        status:
+          type: string
+          enum: [Active, Inactive]
+          example: Active
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Error message
+
+  responses:
+    BadRequest:
+      description: Missing or invalid required fields
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Missing required fields
+              missing:
+                type: array
+                items:
+                  type: string
+                example: [name, email]
+    NotFound:
+      description: User not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: User not found
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
