@@ -1,0 +1,21 @@
+[
+  {
+    "bookingId": "BK-MQ7ULCII-7YWM",
+    "source": "scenarioC",
+    "reservation": {
+      "partySize": 5,
+      "bookingDate": "2026-06-11",
+      "bookingTime": "17:00",
+      "occasion": "",
+      "notes": "你好"
+    },
+    "contact": {
+      "fullName": "Sam Chang",
+      "phone": "0912345679",
+      "email": "samchang@witsamerica.com"
+    },
+    "sourcePage": "/scenario/scenarioC",
+    "submittedAt": "2026-06-10T09:09:58.455Z",
+    "createdAt": "2026-06-10T09:09:58.554Z"
+  }
+]

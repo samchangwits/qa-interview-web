@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking Flow</title>
+  <style>
+    :root {
+      --bg: #fff8f1;
+      --panel: #ffffff;
+      --line: #e5e7eb;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --brand: #f97316;
+      --brand-deep: #c2410c;
+      --ok: #166534;
+      --error: #991b1b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, #ffedd5 0, transparent 46%),
+        radial-gradient(circle at bottom left, #ffedd5 0, transparent 40%),
+        var(--bg);
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 28px auto;
+      padding: 0 14px 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .badge {
+      border: 1px solid #fed7aa;
+      background: #fff7ed;
+      color: #9a3412;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .shell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(17, 24, 39, 0.08);
+      overflow: hidden;
+    }
+
+    .hero {
+      height: 220px;
+      background-image:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.05)),
+        url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1600&q=80');
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: flex-end;
+      padding: 18px;
+      color: #fff;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: 0.2px;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
+    .aside {
+      border-bottom: 1px solid var(--line);
+      padding: 18px;
+      background: #fffbf7;
+    }
+
+    .main {
+      padding: 18px;
+    }
+
+    .step-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .step-tab {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .step-tab.active {
+      border-color: var(--brand);
+      color: var(--brand-deep);
+      background: #fff7ed;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #374151;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+    }
+
+    .time-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+      gap: 8px;
+    }
+
+    .slot {
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      padding: 8px;
+      text-align: center;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      color: #1f2937;
+    }
+
+    .slot.selected {
+      border-color: var(--brand);
+      background: #fff7ed;
+      color: var(--brand-deep);
+    }
+
+    .slot.error {
+      border-color: #ef4444;
+      background: #fff1f2;
+      color: #b91c1c;
+    }
+
+    .input-error {
+      border-color: #ef4444 !important;
+      background: #fff1f2;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn.primary {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .btn.secondary {
+      background: #1f2937;
+      color: #fff;
+    }
+
+    .btn.ghost {
+      background: #fff;
+      border: 1px solid var(--line);
+      color: #111827;
+    }
+
+    .summary {
+      border: 1px solid #fed7aa;
+      background: #fff7ed;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+
+    .summary h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: #9a3412;
+    }
+
+    .summary p {
+      margin: 0 0 5px;
+      font-size: 13px;
+      color: #7c2d12;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      min-height: 20px;
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.error {
+      color: var(--error);
+    }
+
+    .inline-error {
+      margin: 8px 0 0;
+      padding: 10px 12px;
+      border: 1px solid #fecaca;
+      background: #fff1f2;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #991b1b;
+      line-height: 1.5;
+    }
+
+    .note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    @media (min-width: 900px) {
+      .content {
+        grid-template-columns: 320px 1fr;
+      }
+
+      .aside {
+        border-right: 1px solid var(--line);
+        border-bottom: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <span class="badge">Two Page Booking Flow</span>
+    </div>
+
+    <div class="shell">
+      <section class="hero">
+        <h1>WITS TPBranch</h1>
+      </section>
+
+      <div class="content">
+        <aside class="aside">
+          <div class="summary" id="reservation-summary">
+            <h3>Reservation Summary</h3>
+            <p data-summary="party">Party size: -</p>
+            <p data-summary="date">Date: -</p>
+            <p data-summary="time">Time: -</p>
+            <p data-summary="name">Name: -</p>
+            <p data-summary="phone">Phone: -</p>
+            <p data-summary="email">Email: -</p>
+          </div>
+          <!-- <p class="note">This front-end is intentionally independent from back-end validation. Click Book Now to send payload to API.</p> -->
+        </aside>
+
+        <main class="main">
+          <div class="step-tabs">
+            <span class="step-tab active" id="tab-step-1">Step 1. Select Slot</span>
+            <span class="step-tab" id="tab-step-2">Step 2. Contact + Book</span>
+          </div>
+
+          <section id="step-1">
+            <div class="field">
+              <label for="party-size">Party size</label>
+              <select id="party-size" data-cy="party-size">
+                <option value="">Please select</option>
+                <option value="1">1 adult</option>
+                <option value="2">2 adults</option>
+                <option value="3">3 adults</option>
+                <option value="4">4 adults</option>
+                <option value="5">5 adults</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="booking-date">Dining date</label>
+              <input id="booking-date" type="date" data-cy="booking-date">
+            </div>
+
+            <div class="field">
+              <label>Time slot</label>
+              <div class="time-grid" id="time-grid" data-cy="time-grid"></div>
+            </div>
+
+            <div class="inline-error hidden" id="step-1-error" data-cy="step-1-error"></div>
+
+            <div class="actions">
+              <button class="btn primary" id="go-step-2" data-cy="go-step-2">Continue</button>
+            </div>
+          </section>
+
+          <section id="step-2" class="hidden">
+            <div class="field">
+              <label for="full-name">Full name</label>
+              <input id="full-name" data-cy="full-name" placeholder="Your name">
+            </div>
+
+            <div class="field">
+              <label for="phone">Phone</label>
+              <input id="phone" data-cy="phone" placeholder="09xx-xxx-xxx">
+            </div>
+
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" type="email" data-cy="email" placeholder="you@example.com">
+            </div>
+
+            <div class="field">
+              <label for="occasion">Occasion</label>
+              <select id="occasion" data-cy="occasion">
+                <option value="">None</option>
+                <option>Birthday</option>
+                <option>Date</option>
+                <option>Anniversary</option>
+                <option>Business</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="notes">Notes</label>
+              <textarea id="notes" rows="4" data-cy="notes" placeholder="Allergy / seat request / anything else"></textarea>
+            </div>
+
+            <div class="actions">
+              <button class="btn ghost" id="back-step-1" data-cy="back-step-1">Back</button>
+              <button class="btn secondary" id="book-now" data-cy="book-now">Book Now</button>
+            </div>
+
+            <div class="status" id="submit-status" data-cy="submit-status"></div>
+            <p class="note">API endpoint: configured by backend integration</p>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const defaultSlots = [
+      '17:00', '17:20', '17:40', '18:00', '18:20', '18:40',
+      '19:00', '19:20', '19:40', '20:00', '20:20', '20:40'
+    ];
+
+    const state = {
+      partySize: '',
+      bookingDate: '',
+      bookingTime: '',
+      fullName: '',
+      phone: '',
+      email: '',
+      occasion: '',
+      notes: ''
+    };
+
+    const partySizeEl = document.getElementById('party-size');
+    const bookingDateEl = document.getElementById('booking-date');
+    const timeGridEl = document.getElementById('time-grid');
+
+    const step1El = document.getElementById('step-1');
+    const step2El = document.getElementById('step-2');
+    const tabStep1El = document.getElementById('tab-step-1');
+    const tabStep2El = document.getElementById('tab-step-2');
+    const step1ErrorEl = document.getElementById('step-1-error');
+    const statusEl = document.getElementById('submit-status');
+
+    const fullNameEl = document.getElementById('full-name');
+    const phoneEl = document.getElementById('phone');
+    const emailEl = document.getElementById('email');
+    const occasionEl = document.getElementById('occasion');
+    const notesEl = document.getElementById('notes');
+    const bookNowBtn = document.getElementById('book-now');
+
+    let isSubmitting = false;
+
+    const summaryMap = {
+      party: document.querySelector('[data-summary="party"]'),
+      date: document.querySelector('[data-summary="date"]'),
+      time: document.querySelector('[data-summary="time"]'),
+      name: document.querySelector('[data-summary="name"]'),
+      phone: document.querySelector('[data-summary="phone"]'),
+      email: document.querySelector('[data-summary="email"]')
+    };
+
+    function formatDateISO(iso) {
+      if (!iso) return '-';
+      const date = new Date(iso + 'T00:00:00');
+      return date.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function setStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    function clearStep1ValidationUI() {
+      step1ErrorEl.textContent = '';
+      step1ErrorEl.classList.add('hidden');
+      partySizeEl.classList.remove('input-error');
+      bookingDateEl.classList.remove('input-error');
+      renderSlots();
+    }
+
+    function showStep1Error(missingFields) {
+      const labels = {
+        partySize: 'Party size',
+        bookingDate: 'Dining date',
+        bookingTime: 'Time slot'
+      };
+
+      const detail = missingFields.map((key) => labels[key]).join(', ');
+      step1ErrorEl.textContent = 'Please complete: ' + detail + '.';
+      step1ErrorEl.classList.remove('hidden');
+
+      partySizeEl.classList.toggle('input-error', missingFields.includes('partySize'));
+      bookingDateEl.classList.toggle('input-error', missingFields.includes('bookingDate'));
+
+      renderSlots();
+      if (missingFields.includes('bookingTime')) {
+        timeGridEl.querySelectorAll('.slot').forEach((btn) => {
+          btn.classList.add('error');
+        });
+      }
+    }
+
+    function updateSummary() {
+      summaryMap.party.textContent = 'Party size: ' + (state.partySize ? state.partySize + ' adults' : '-');
+      summaryMap.date.textContent = 'Date: ' + formatDateISO(state.bookingDate);
+      summaryMap.time.textContent = 'Time: ' + (state.bookingTime || '-');
+      summaryMap.name.textContent = 'Name: ' + (state.fullName || '-');
+      summaryMap.phone.textContent = 'Phone: ' + (state.phone || '-');
+      summaryMap.email.textContent = 'Email: ' + (state.email || '-');
+    }
+
+    function renderSlots() {
+      timeGridEl.innerHTML = '';
+      defaultSlots.forEach((slot) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'slot' + (state.bookingTime === slot ? ' selected' : '');
+        btn.textContent = slot;
+        btn.dataset.time = slot;
+        btn.dataset.cy = 'time-slot-' + slot.replace(':', '-');
+        btn.addEventListener('click', () => {
+          state.bookingTime = slot;
+          renderSlots();
+          updateSummary();
+        });
+        timeGridEl.appendChild(btn);
+      });
+    }
+
+    function goStep(step) {
+      const inStep1 = step === 1;
+      step1El.classList.toggle('hidden', !inStep1);
+      step2El.classList.toggle('hidden', inStep1);
+      tabStep1El.classList.toggle('active', inStep1);
+      tabStep2El.classList.toggle('active', !inStep1);
+    }
+
+    function syncFromInputs() {
+      state.partySize = partySizeEl.value;
+      state.bookingDate = bookingDateEl.value;
+      state.fullName = fullNameEl.value.trim();
+      state.phone = phoneEl.value.trim();
+      state.email = emailEl.value.trim();
+      state.occasion = occasionEl.value;
+      state.notes = notesEl.value.trim();
+      updateSummary();
+    }
+
+    function validateStep1() {
+      const missingFields = [];
+      if (!state.partySize) missingFields.push('partySize');
+      if (!state.bookingDate) missingFields.push('bookingDate');
+      if (!state.bookingTime) missingFields.push('bookingTime');
+
+      if (missingFields.length > 0) {
+        showStep1Error(missingFields);
+        setStatus('Step 1 is incomplete.', 'error');
+        return false;
+      }
+
+      clearStep1ValidationUI();
+      return true;
+    }
+
+    function validateStep2() {
+      if (!state.fullName || !state.phone || !state.email) {
+        setStatus('Please complete name, phone, and email before booking.', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    function setBookNowSubmitting(submitting) {
+      isSubmitting = submitting;
+      bookNowBtn.disabled = submitting;
+      bookNowBtn.textContent = submitting ? 'Submitting...' : 'Book Now';
+    }
+
+    async function submitBooking() {
+      if (isSubmitting) {
+        return;
+      }
+
+      syncFromInputs();
+      if (!validateStep2()) {
+        return;
+      }
+
+      const payload = {
+        scenario: 'scenarioC',
+        sourcePage: '/scenario/scenarioC',
+        reservation: {
+          partySize: Number(state.partySize),
+          bookingDate: state.bookingDate,
+          bookingTime: state.bookingTime,
+          occasion: state.occasion,
+          notes: state.notes
+        },
+        contact: {
+          fullName: state.fullName,
+          phone: state.phone,
+          email: state.email
+        },
+        submittedAt: new Date().toISOString()
+      };
+
+      setStatus('Submitting booking payload to API...', '');
+      setBookNowSubmitting(true);
+
+      try {
+        const response = await fetch('/api/scenario-c/book-now', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        let body = null;
+        try {
+          body = await response.json();
+        } catch (parseError) {
+          body = null;
+        }
+
+        if (response.ok) {
+          const message = body && body.message ? body.message : 'Booking request submitted successfully.';
+          setStatus(message, 'ok');
+        } else {
+          const suffix = body && body.message ? ' Message: ' + body.message : '';
+          setStatus('API returned status ' + response.status + '.' + suffix, 'error');
+        }
+      } catch (error) {
+        setStatus('API request failed. Backend endpoint may not be ready yet.', 'error');
+      } finally {
+        setBookNowSubmitting(false);
+      }
+    }
+
+    partySizeEl.addEventListener('change', () => {
+      state.partySize = partySizeEl.value;
+      updateSummary();
+    });
+
+    bookingDateEl.addEventListener('change', () => {
+      state.bookingDate = bookingDateEl.value;
+      updateSummary();
+    });
+
+    [fullNameEl, phoneEl, emailEl, occasionEl, notesEl].forEach((el) => {
+      el.addEventListener('input', syncFromInputs);
+      el.addEventListener('change', syncFromInputs);
+    });
+
+    document.getElementById('go-step-2').addEventListener('click', () => {
+      syncFromInputs();
+      if (!validateStep1()) {
+        return;
+      }
+      setStatus('', '');
+      goStep(2);
+    });
+
+    document.getElementById('back-step-1').addEventListener('click', () => {
+      setStatus('', '');
+      goStep(1);
+    });
+
+    bookNowBtn.addEventListener('click', submitBooking);
+
+    bookingDateEl.value = new Date().toISOString().slice(0, 10);
+    state.bookingDate = bookingDateEl.value;
+    renderSlots();
+    updateSummary();
+  </script>
+</body>
+</html>

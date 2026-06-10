@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interview Site Manager</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #e2e8f0;
+      --active: #0f766e;
+      --active-soft: #ccfbf1;
+      --btn: #0f766e;
+      --btn-text: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at 20% 0%, #e0f2fe 0%, var(--bg) 45%);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 40px auto;
+      padding: 0 16px 40px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .scenario-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .scenario-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    }
+
+    .scenario-btn:hover {
+      transform: translateY(-1px);
+      border-color: #94a3b8;
+    }
+
+    .scenario-btn.active {
+      border-color: var(--active);
+      background: var(--active-soft);
+    }
+
+    .scenario-btn .name {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .scenario-btn .hint {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .command-box {
+      margin-top: 16px;
+      background: #0b1220;
+      color: #e5e7eb;
+      border-radius: 10px;
+      padding: 14px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid #111827;
+    }
+
+    .actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      background: var(--btn);
+      color: var(--btn-text);
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      background: #1e293b;
+    }
+
+    .link-row {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .link-chip {
+      display: inline-block;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #0c4a6e;
+      text-decoration: none;
+      background: #f0f9ff;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="panel">
+      <h1>Interview Site Manager</h1>
+      <p>Select a site to generate the docker run command for the interview day.</p>
+
+      <div id="scenario-grid" class="scenario-grid"></div>
+
+      <div id="status" class="status">Loading configuration...</div>
+
+      <pre id="command-box" class="command-box"></pre>
+
+      <div class="actions">
+        <button id="copy-btn" class="btn" type="button">Copy Command</button>
+        <button id="open-btn" class="btn secondary" type="button">Open Site Page</button>
+      </div>
+
+      <div id="direct-links" class="link-row"></div>
+    </section>
+  </main>
+
+  <script>
+    const grid = document.getElementById('scenario-grid');
+    const statusEl = document.getElementById('status');
+    const commandBox = document.getElementById('command-box');
+    const copyBtn = document.getElementById('copy-btn');
+    const openBtn = document.getElementById('open-btn');
+    const directLinks = document.getElementById('direct-links');
+
+    let activeScenario = 'scenarioA';
+    let supportedScenarios = ['scenarioA', 'scenarioB', 'scenarioC', 'scenarioD', 'scenarioE'];
+
+    function getContainerName(scenarioId) {
+      return `my-wits-lab-${scenarioId}`;
+    }
+
+    function getDisplaySiteName(scenarioId) {
+      const suffix = scenarioId.replace('scenario', '');
+      return `Site ${suffix}`;
+    }
+
+    function buildDockerRunCommand(scenarioId) {
+      const containerName = getContainerName(scenarioId);
+      return [
+        'docker run -d \\',
+        '  -p 8082:8082 \\',
+        '  -v $(pwd):/app \\',
+        '  -v /app/node_modules \\',
+        `  -e INDEX_MODE=${scenarioId} \\`,
+        `  --name ${containerName} \\`,
+        '  wits-lab'
+      ].join('\n');
+    }
+
+    function renderButtons() {
+      grid.innerHTML = '';
+      supportedScenarios.forEach((scenarioId) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'scenario-btn' + (scenarioId === activeScenario ? ' active' : '');
+        btn.innerHTML = `
+          <span class="name">${getDisplaySiteName(scenarioId)}</span>
+          <span class="hint">Use as active mode</span>
+        `;
+        btn.addEventListener('click', () => {
+          activeScenario = scenarioId;
+          updateView();
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderLinks() {
+      directLinks.innerHTML = '';
+      supportedScenarios.forEach((scenarioId) => {
+        const a = document.createElement('a');
+        a.className = 'link-chip';
+        a.href = `/scenario/${scenarioId}`;
+        a.target = '_blank';
+        a.rel = 'noreferrer';
+        a.textContent = `Open ${getDisplaySiteName(scenarioId)}`;
+        directLinks.appendChild(a);
+      });
+    }
+
+    function updateView() {
+      renderButtons();
+      commandBox.textContent = buildDockerRunCommand(activeScenario);
+      statusEl.textContent = `Current default in container: ${getDisplaySiteName(activeScenario)}`;
+    }
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(commandBox.textContent);
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy Command';
+        }, 1200);
+      } catch (error) {
+        copyBtn.textContent = 'Copy failed';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy Command';
+        }, 1200);
+      }
+    });
+
+    openBtn.addEventListener('click', () => {
+      window.open(`/scenario/${activeScenario}`, '_blank', 'noopener,noreferrer');
+    });
+
+    async function init() {
+      try {
+        const res = await fetch('/api/scenarios');
+        const data = await res.json();
+
+        if (data && data.success) {
+          supportedScenarios = data.supportedScenarios || supportedScenarios;
+          activeScenario = data.currentScenario || activeScenario;
+        }
+      } catch (error) {
+        statusEl.textContent = 'Load config failed. Using local defaults.';
+      }
+
+      renderLinks();
+      updateView();
+    }
+
+    init();
+  </script>
+</body>
+</html>

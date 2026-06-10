@@ -85,32 +85,78 @@ docker rm -f my-wits-lab
 # 注意：不加 --rm，這樣修改 server.js（如密碼）後只需 docker restart，不需重新 run
 # 如果需要換shadow版的話就得砍掉容器重新跑另一個新的容器
 
-# 無shadow DOM版本
+# scenarioA（預設主題）
 docker run -d \
   -p 8082:8082 \
   -v $(pwd):/app \
   -v /app/node_modules \
-  -e INDEX_MODE=noshadow \
-  --name my-wits-lab-noshadow \
+  -e INDEX_MODE=scenarioA \
+  --name my-wits-lab-scenarioA \
   wits-lab
 
-# 有shadow DOM版本
+# scenarioB
 docker run -d \
   -p 8082:8082 \
   -v $(pwd):/app \
   -v /app/node_modules \
-  -e INDEX_MODE=shadow \
-  --name my-wits-lab-shadow \
+  -e INDEX_MODE=scenarioB \
+  --name my-wits-lab-scenarioB \
   wits-lab
+
+# scenarioC
+docker run -d \
+  -p 8082:8082 \
+  -v $(pwd):/app \
+  -v /app/node_modules \
+  -e INDEX_MODE=scenarioC \
+  --name my-wits-lab-scenarioC \
+  wits-lab
+
+# scenarioD
+docker run -d \
+  -p 8082:8082 \
+  -v $(pwd):/app \
+  -v /app/node_modules \
+  -e INDEX_MODE=scenarioD \
+  --name my-wits-lab-scenarioD \
+  wits-lab
+
+# scenarioE
+docker run -d \
+  -p 8082:8082 \
+  -v $(pwd):/app \
+  -v /app/node_modules \
+  -e INDEX_MODE=scenarioE \
+  --name my-wits-lab-scenarioE \
+  wits-lab
+
+# scenarioC / scenarioD / scenarioE 只要替換 INDEX_MODE 值即可
+# -e INDEX_MODE=scenarioC
+# -e INDEX_MODE=scenarioD
+# -e INDEX_MODE=scenarioE
 
 # 修改 server.js 後（如更換密碼），執行 restart 讓變更生效（不需重新 run）：
-# docker restart my-wits-lab-noshadow
-# docker restart my-wits-lab-shadow
+# docker restart my-wits-lab-scenarioA
+# docker restart my-wits-lab-scenarioB
 
 # 面試結束後手動清理容器：
-# docker rm -f my-wits-lab-noshadow my-wits-lab-shadow
+# docker rm -f my-wits-lab-scenarioA my-wits-lab-scenarioB
 
 
 # 4. 啟動 ngrok 專屬通道對外發布 API/Swagger/wits-lab
 ngrok start --all
+
+# 5. 開啟考官快速切題頁
+# 本機：http://localhost:8082/scenario-manager
+# 功能：點選 scenarioA~E、複製 docker run 指令、快速開啟對應 scenario 頁面
+
+# 常見錯誤排除
+# 1) container name conflict（容器名稱重複）
+# docker rm -f my-wits-lab-scenarioA
+
+# 2) macOS mounts denied（/Volumes 路徑未加入 Docker File Sharing）
+# 方案A：到 Docker Desktop -> Settings -> Resources -> File Sharing 加入：
+# /Volumes/DevSSD/Documents/qa-interview-web
+# 方案B：先不掛載 volume，直接啟動容器：
+# docker run -d -p 8082:8082 -e INDEX_MODE=scenarioA --name my-wits-lab-scenarioA wits-lab
 ```
