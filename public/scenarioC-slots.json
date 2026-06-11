@@ -1,0 +1,47 @@
+{
+  "_comment": "defaultSlots: 每日預設名額。seats=0 表示該時段不可預約，seats=null 表示名額無上限（always available）。dateOverrides: 特定日期可完整覆蓋所有時段設定。",
+  "defaultSlots": [
+    { "time": "17:00", "seats": 4 },
+    { "time": "17:20", "seats": 4 },
+    { "time": "17:40", "seats": 2 },
+    { "time": "18:00", "seats": 0 },
+    { "time": "18:20", "seats": 0 },
+    { "time": "18:40", "seats": 6 },
+    { "time": "19:00", "seats": 6 },
+    { "time": "19:20", "seats": 4 },
+    { "time": "19:40", "seats": 0 },
+    { "time": "20:00", "seats": 4 },
+    { "time": "20:20", "seats": 2 },
+    { "time": "20:40", "seats": 4 }
+  ],
+  "dateOverrides": {
+    "2026-06-12": [
+      { "time": "17:00", "seats": 0 },
+      { "time": "17:20", "seats": 0 },
+      { "time": "17:40", "seats": 0 },
+      { "time": "18:00", "seats": 0 },
+      { "time": "18:20", "seats": 0 },
+      { "time": "18:40", "seats": 1 },
+      { "time": "19:00", "seats": 2 },
+      { "time": "19:20", "seats": 2 },
+      { "time": "19:40", "seats": 0 },
+      { "time": "20:00", "seats": 0 },
+      { "time": "20:20", "seats": 0 },
+      { "time": "20:40", "seats": 1 }
+    ],
+    "2026-06-13": [
+      { "time": "17:00", "seats": 1 },
+      { "time": "17:20", "seats": 2 },
+      { "time": "17:40", "seats": 0 },
+      { "time": "18:00", "seats": 3 },
+      { "time": "18:20", "seats": 4 },
+      { "time": "18:40", "seats": 0 },
+      { "time": "19:00", "seats": 0 },
+      { "time": "19:20", "seats": 4 },
+      { "time": "19:40", "seats": 5 },
+      { "time": "20:00", "seats": 5 },
+      { "time": "20:20", "seats": 5 },
+      { "time": "20:40", "seats": 5 }
+    ]
+  }
+}

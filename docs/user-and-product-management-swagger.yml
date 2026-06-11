@@ -1,0 +1,144 @@
+openapi: 3.0.0
+info:
+  title: SDET Technical Assessment API
+  description: |
+    API Sandbox for automation testing.<br>
+    This UI allows candidates to interact with the mockup server.<br>
+    Host Url: **https://1bee-2001-b011-980a-1bdf-59a2-9faf-c23c-afbb.ngrok-free.app**
+  version: 1.1.0
+
+servers:
+  - url: https://1bee-2001-b011-980a-1bdf-59a2-9faf-c23c-afbb.ngrok-free.app
+    description: Current ngrok/local environment
+
+tags:
+  - name: Users
+    description: User management operations
+  - name: Products
+    description: Product catalog operations
+
+paths:
+  /users:
+    get:
+      summary: Retrieve all users
+      tags: [Users]
+      responses:
+        '200':
+          description: List of users retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      summary: Create a new user
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created.
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string # json-server 通常處理字串或整數 ID
+    patch:
+      summary: Partially update a user
+      tags: [Users]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated successfully.
+    delete:
+      summary: Delete a user
+      tags: [Users]
+      responses:
+        '200':
+          description: User deleted.
+
+  /products:
+    get:
+      summary: Retrieve all products
+      tags: [Products]
+      responses:
+        '200':
+          description: List of products retrieved successfully.
+    post:
+      summary: Create a new product
+      tags: [Products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '201':
+          description: Product created.
+
+  /products/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Partially update a product
+      tags: [Products]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '200':
+          description: Product updated successfully.
+    delete:
+      summary: Delete a product
+      tags: [Products]
+      responses:
+        '200':
+          description: Product deleted.
+
+components:
+  schemas:
+    User:
+      type: object
+      required: [name, role]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          example: "John Doe"
+        role:
+          type: string
+          example: "Senior QA"
+    Product:
+      type: object
+      required: [name, price]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          example: "Mac Studio"
+        price:
+          type: number
+          example: 1999

@@ -159,19 +159,48 @@
     .slot {
       border: 1px solid #d1d5db;
       border-radius: 9px;
-      padding: 8px;
+      padding: 8px 8px 6px;
       text-align: center;
       background: #fff;
       cursor: pointer;
       font-weight: 700;
       font-size: 13px;
       color: #1f2937;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .slot-time {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .slot-seats {
+      font-size: 11px;
+      font-weight: 400;
+      color: #6b7280;
+      line-height: 1.2;
+    }
+
+    .slot.selected .slot-seats {
+      color: #c2410c;
     }
 
     .slot.selected {
       border-color: var(--brand);
       background: #fff7ed;
       color: var(--brand-deep);
+    }
+
+    .slot.disabled {
+      border-color: #e5e7eb;
+      background: #f3f4f6;
+      color: #9ca3af;
+      cursor: not-allowed;
+      text-decoration: line-through;
     }
 
     .slot.error {
@@ -389,7 +418,7 @@
             </div>
 
             <div class="status" id="submit-status" data-cy="submit-status"></div>
-            <p class="note">API endpoint: configured by backend integration</p>
+            <!-- <p class="note">API endpoint: configured by backend integration</p> -->
           </section>
         </main>
       </div>
@@ -401,6 +430,39 @@
       '17:00', '17:20', '17:40', '18:00', '18:20', '18:40',
       '19:00', '19:20', '19:40', '20:00', '20:20', '20:40'
     ];
+
+    // slotConfig: 陣列，每個 slot 含 { time, available, seats }
+    // seats: null = 無上限, 0 = 客滿/停用, N = 剩餘名額
+    let slotConfig = defaultSlots.map(t => ({ time: t, available: true, seats: null }));
+    let slotsLoading = false;
+
+    async function loadSlotsForDate(date) {
+      slotsLoading = true;
+      renderSlots(); // 顯示 loading 狀態
+      try {
+        const url = '/api/scenario-c/slots' + (date ? '?date=' + encodeURIComponent(date) : '');
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('API error ' + res.status);
+        const json = await res.json();
+        if (Array.isArray(json.slots)) {
+          slotConfig = json.slots;
+        }
+      } catch (_) {
+        // fallback: 使用預設全部可訂
+        slotConfig = defaultSlots.map(t => ({ time: t, available: true, seats: null }));
+      } finally {
+        slotsLoading = false;
+        // 若已選的時段在新日期不可用，清除選擇
+        if (state.bookingTime) {
+          const match = slotConfig.find(s => s.time === state.bookingTime);
+          if (!match || !match.available) {
+            state.bookingTime = '';
+            updateSummary();
+          }
+        }
+        renderSlots();
+      }
+    }
 
     const state = {
       partySize: '',
@@ -494,18 +556,47 @@
 
     function renderSlots() {
       timeGridEl.innerHTML = '';
-      defaultSlots.forEach((slot) => {
+
+      if (slotsLoading) {
+        const msg = document.createElement('p');
+        msg.style.cssText = 'margin:0;color:#6b7280;font-size:13px;';
+        msg.textContent = 'Loading available slots…';
+        timeGridEl.appendChild(msg);
+        return;
+      }
+
+      slotConfig.forEach(({ time, available, seats }) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'slot' + (state.bookingTime === slot ? ' selected' : '');
-        btn.textContent = slot;
-        btn.dataset.time = slot;
-        btn.dataset.cy = 'time-slot-' + slot.replace(':', '-');
-        btn.addEventListener('click', () => {
-          state.bookingTime = slot;
-          renderSlots();
-          updateSummary();
-        });
+        btn.dataset.time = time;
+        btn.dataset.cy = 'time-slot-' + time.replace(':', '-');
+
+        // 時間標籤
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'slot-time';
+        timeSpan.textContent = time;
+        btn.appendChild(timeSpan);
+
+        // 名額標籤（seats: null=無上限不顯示, 0=客滿, N=剩N席）
+        if (seats !== null && seats !== undefined) {
+          const seatsSpan = document.createElement('span');
+          seatsSpan.className = 'slot-seats';
+          seatsSpan.dataset.cy = 'slot-seats-' + time.replace(':', '-');
+          seatsSpan.textContent = seats === 0 ? 'Full' : seats + ' left';
+          btn.appendChild(seatsSpan);
+        }
+
+        if (!available) {
+          btn.className = 'slot disabled';
+          btn.disabled = true;
+        } else {
+          btn.className = 'slot' + (state.bookingTime === time ? ' selected' : '');
+          btn.addEventListener('click', () => {
+            state.bookingTime = time;
+            renderSlots();
+            updateSummary();
+          });
+        }
         timeGridEl.appendChild(btn);
       });
     }
@@ -539,6 +630,22 @@
         showStep1Error(missingFields);
         setStatus('Step 1 is incomplete.', 'error');
         return false;
+      }
+
+      // 名額驗證：人數不可超過所選時段的剩餘座位
+      const selectedSlot = slotConfig.find(s => s.time === state.bookingTime);
+      if (selectedSlot) {
+        const { seats } = selectedSlot;
+        if (seats !== null && seats !== undefined) {
+          const partySize = Number(state.partySize);
+          if (partySize > seats) {
+            step1ErrorEl.textContent = `Not enough seats: only ${seats} left for ${state.bookingTime}, but you selected party size ${partySize}.`;
+            step1ErrorEl.classList.remove('hidden');
+            partySizeEl.classList.add('input-error');
+            setStatus('Party size exceeds available seats.', 'error');
+            return false;
+          }
+        }
       }
 
       clearStep1ValidationUI();
@@ -607,9 +714,15 @@
         if (response.ok) {
           const message = body && body.message ? body.message : 'Booking request submitted successfully.';
           setStatus(message, 'ok');
+          // 預約成功後重新拉 slots，讓剩餘座位即時更新
+          await loadSlotsForDate(state.bookingDate);
         } else {
           const suffix = body && body.message ? ' Message: ' + body.message : '';
           setStatus('API returned status ' + response.status + '.' + suffix, 'error');
+          // 若因名額不足被拒（422），也刷新 slots 顯示最新狀態
+          if (response.status === 422) {
+            await loadSlotsForDate(state.bookingDate);
+          }
         }
       } catch (error) {
         setStatus('API request failed. Backend endpoint may not be ready yet.', 'error');
@@ -625,7 +738,9 @@
 
     bookingDateEl.addEventListener('change', () => {
       state.bookingDate = bookingDateEl.value;
+      state.bookingTime = ''; // 切換日期時清除已選時段
       updateSummary();
+      loadSlotsForDate(state.bookingDate);
     });
 
     [fullNameEl, phoneEl, emailEl, occasionEl, notesEl].forEach((el) => {
@@ -649,9 +764,12 @@
 
     bookNowBtn.addEventListener('click', submitBooking);
 
-    bookingDateEl.value = new Date().toISOString().slice(0, 10);
-    state.bookingDate = bookingDateEl.value;
-    renderSlots();
+    // 使用本地時區日期，避免 toISOString() 回傳 UTC 導致顯示前一天
+    const _today = new Date();
+    const _localDate = `${_today.getFullYear()}-${String(_today.getMonth() + 1).padStart(2, '0')}-${String(_today.getDate()).padStart(2, '0')}`;
+    bookingDateEl.value = _localDate;
+    state.bookingDate = _localDate;
+    loadSlotsForDate(_localDate);
     updateSummary();
   </script>
 </body>

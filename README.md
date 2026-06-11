@@ -28,6 +28,7 @@ npm init -y
 # 安裝 Express (後端服務) 與 Axios (替代 UrlFetchApp 請求 JSON Server)
 npm install express axios
 ```
+
 接著，打開 `package.json`，在 `"scripts"` 區塊中加入 `"dev"` 監聽指令：
 
 ```json
@@ -150,6 +151,41 @@ ngrok start --all
 # 本機：http://localhost:8082/scenario-manager
 # 功能：點選 scenarioA~E、複製 docker run 指令、快速開啟對應 scenario 頁面
 
+# 6. 各 Scenario 對應的 Endpoint 一覽
+#
+# ── ScenarioA / ScenarioB（Login + Checkout）─────────────────────────────
+#   頁面：http://localhost:8082/
+#   後端：POST /api/action  (login / createOrder)
+#   資料來源：JSON Server @ 9090 (users / products)
+#   Swagger：http://localhost:8082/api-docs/json-server
+#     GET    /users              取得所有使用者
+#     POST   /users              新增使用者
+#     PATCH  /users/{id}         更新使用者
+#     DELETE /users/{id}         刪除使用者
+#     GET    /products           取得所有商品
+#     POST   /products           新增商品
+#     PATCH  /products/{id}      更新商品
+#     DELETE /products/{id}      刪除商品
+#
+# ── ScenarioC（Reservation）──────────────────────────────────────────────
+#   頁面：http://localhost:8082/scenario/scenarioC
+#   後端：POST /api/scenario-c/book-now  (送出訂位)
+#   資料儲存：data/scenarioC-bookings.json
+#
+# ── ScenarioD（User Management System）──────────────────────────────────
+#   頁面：http://localhost:8082/scenario/scenarioD
+#   Swagger：http://localhost:8082/api-docs/user-management
+#     GET    /api/users          取得使用者列表（支援 offset/limit/name/status）
+#     POST   /api/users          新增使用者
+#     PUT    /api/users/{id}     更新使用者
+#     DELETE /api/users/{id}     刪除使用者
+#   資料儲存：data/scenarioD-users.json
+#
+# ── 共用 ─────────────────────────────────────────────────────────────────
+#   GET /api/scenarios           取得所有 scenario 設定
+#   GET /scenario/{scenarioId}   直接訪問指定 scenario 頁面
+#   GET /scenario-manager        考官切題管理頁
+
 # 常見錯誤排除
 # 1) container name conflict（容器名稱重複）
 # docker rm -f my-wits-lab-scenarioA
@@ -159,4 +195,121 @@ ngrok start --all
 # /Volumes/DevSSD/Documents/qa-interview-web
 # 方案B：先不掛載 volume，直接啟動容器：
 # docker run -d -p 8082:8082 -e INDEX_MODE=scenarioA --name my-wits-lab-scenarioA wits-lab
+```
+
+---
+
+## 🖥️ 不使用 Docker：直接啟動 Server
+
+> Docker 沒有運行，或想快速本機測試時，可用以下指令直接啟動 `server.js`。
+> **所有 scenario（A～E）共用同一個 server**，不是只有 scenarioC 才需要開。
+
+### 啟動 Server（前景，關掉 Terminal 就停止）
+
+```bash
+cd /Users/zhangheli/Documents/qa-interview-web
+
+# 不指定 INDEX_MODE 時預設為 scenarioA
+node server.js
+
+# 指定 scenario（A～E）
+INDEX_MODE=scenarioC node server.js
+```
+
+### 啟動 Server（背景，關掉 Terminal 仍繼續執行）
+
+```bash
+cd /Users/zhangheli/Documents/qa-interview-web
+
+# ⚠️ 務必帶上 INDEX_MODE，否則預設 fallback 成 scenarioA
+INDEX_MODE=scenarioC nohup node server.js > server.log 2>&1 &
+```
+
+> **注意**：`INDEX_MODE` 決定首頁（`/`）顯示哪個 scenario。
+> 所有 `/scenario/scenarioA` ～ `/scenario/scenarioE` 的直接路由不受影響，永遠都可訪問。
+
+### 確認 Server 是否正在運行
+
+```bash
+lsof -ti:8082 && echo "✅ running on port 8082" || echo "❌ not running"
+```
+
+### 查看 Server Log
+
+```bash
+tail -f /Users/zhangheli/Documents/qa-interview-web/server.log
+```
+
+### 停止 Server
+
+```bash
+lsof -ti:8082 | xargs kill -9
+```
+
+---
+
+## 🌍 ngrok Tunnel 對應表
+
+> 執行 `ngrok start --all` 後，依照 `ngrok.yml` 設定，三條 tunnel 各自對應不同 port：
+
+| Tunnel 名稱 | ngrok 公開網址範例 | 對應 Port | 用途 |
+| --- | --- | --- | --- |
+| `wits-lab` | `https://xxxx.ngrok-free.app` | **8082** | 主要 App（所有 scenario 頁面 + API） |
+| `qa-api` | `https://xxxx.ngrok-free.app` | 9090 | JSON Server（scenarioA/B 資料） |
+| `qa-docs` | `https://xxxx.ngrok-free.app` | 8081 | Swagger / API 文件 |
+
+查詢目前 tunnel 的實際網址：
+
+```bash
+curl -s http://127.0.0.1:4040/api/tunnels | python3 -m json.tool
+```
+
+---
+
+## 📅 ScenarioC — 時段（Slot）設定說明
+
+時段狀態由 `public/scenarioC-slots.json` 控制，**修改後不需重啟 server，刷新頁面即生效**。
+
+### JSON 格式
+
+```json
+{
+  "defaultSlots": [
+    { "time": "17:00", "seats": 4 },
+    { "time": "18:00", "seats": 0 },
+    { "time": "19:00", "seats": null }
+  ],
+  "dateOverrides": {
+    "2026-06-12": [
+      { "time": "17:00", "seats": 1 },
+      { "time": "18:00", "seats": 0 }
+    ]
+  }
+}
+```
+
+| `seats` 值 | 前端顯示 | 可否點選 |
+| --- | --- | --- |
+| `0` | `Full`（劃線灰底） | ❌ 不可 |
+| `N`（正整數） | `N left` | ✅ 可 |
+| `null` | 無標籤（無上限） | ✅ 可 |
+
+- **`defaultSlots`**：所有日期的預設時段
+- **`dateOverrides`**：特定日期完整覆蓋預設，key 為 `YYYY-MM-DD`
+
+### Slots API
+
+```text
+GET /api/scenario-c/slots?date=YYYY-MM-DD
+```
+
+範例：
+
+```bash
+# 查詢今天的時段
+curl http://localhost:8082/api/scenario-c/slots?date=2026-06-11
+
+# 透過 ngrok 查詢（帶跳過警告頁 header）
+curl -H "ngrok-skip-browser-warning: true" \
+  "https://<wits-lab-ngrok-url>/api/scenario-c/slots?date=2026-06-11"
 ```

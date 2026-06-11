@@ -10,6 +10,7 @@ const PORT = 8082;
 
 const DATA_DIR = path.join(__dirname, 'data');
 const BOOKINGS_FILE = path.join(DATA_DIR, 'scenarioC-bookings.json');
+const SLOTS_CONFIG_FILE = path.join(__dirname, 'public', 'scenarioC-slots.json');
 let bookingsWriteQueue = Promise.resolve();
 
 const SCENARIOD_USERS_FILE = path.join(DATA_DIR, 'scenarioD-users.json');
@@ -52,10 +53,16 @@ app.use(express.urlencoded({ extended: true }));
 // 讓 Express 服務靜態網頁，index: false 避免自動回傳 index.html 蓋掉下方路由
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
-// Swagger UI for User Management(scenarioD)
+// Swagger UI for User Management (scenarioD)
 const swaggerDoc = yaml.load(fsSync.readFileSync(path.join(__dirname, 'docs/user-management-swagger.yml'), 'utf8'));
 app.use('/api-docs/user-management', swaggerUi.serve, swaggerUi.setup(swaggerDoc, {
   customSiteTitle: 'User Management API Docs'
+}));
+
+// Swagger UI for ScenarioA/B - JSON Server (Users & Products)
+const swaggerDocAB = yaml.load(fsSync.readFileSync(path.join(__dirname, 'docs/user-and-product-management-swagger.yml'), 'utf8'));
+app.use('/api-docs/json-server', swaggerUi.serve, swaggerUi.setup(swaggerDocAB, {
+  customSiteTitle: 'SDET Assessment API Docs'
 }));
 
 // 根路徑根據 INDEX_MODE 動態回傳對應的 HTML
@@ -165,6 +172,71 @@ async function withBookingsLock(task) {
   return run;
 }
 
+// 計算各 slot 扣除已訂人數後的動態剩餘座位
+// configuredSeats=null → 無上限；=0 → 停用；=N → 扣除已訂後剩餘
+function computeSlots(rawSlots, bookings, date) {
+  return rawSlots.map(s => {
+    const configuredSeats = s.seats === undefined ? null : s.seats;
+    if (configuredSeats === null) return { time: s.time, available: true, seats: null };
+    if (configuredSeats === 0)    return { time: s.time, available: false, seats: 0 };
+
+    // 該 date + time 已被訂走的總人數
+    const bookedCount = bookings
+      .filter(b =>
+        b.reservation &&
+        String(b.reservation.bookingDate) === date &&
+        String(b.reservation.bookingTime) === s.time
+      )
+      .reduce((sum, b) => sum + (Number(b.reservation.partySize) || 0), 0);
+
+    const remaining = Math.max(0, configuredSeats - bookedCount);
+    return { time: s.time, available: remaining > 0, seats: remaining };
+  });
+}
+
+app.get('/api/scenario-c/slots', async (req, res) => {
+  const date = String(req.query.date || '').trim();
+
+  // 讀取 slots 設定檔
+  let config;
+  try {
+    const raw = await fs.readFile(SLOTS_CONFIG_FILE, 'utf8');
+    config = JSON.parse(raw);
+  } catch (_) {
+    const fallback = [
+      '17:00','17:20','17:40','18:00','18:20','18:40',
+      '19:00','19:20','19:40','20:00','20:20','20:40'
+    ].map(t => ({ time: t, available: true, seats: null }));
+    return res.json({ date: date || null, slots: fallback });
+  }
+
+  // 決定使用哪一組 slot 定義（dateOverrides 優先，否則 defaultSlots）
+  let rawSlots;
+  if (date && config.dateOverrides && config.dateOverrides[date]) {
+    rawSlots = config.dateOverrides[date];
+  } else if (Array.isArray(config.defaultSlots)) {
+    rawSlots = config.defaultSlots;
+  } else if (Array.isArray(config.slots)) {
+    // 向下相容舊格式 { slots: [ { time, available } ] }
+    return res.json({
+      date: date || null,
+      slots: config.slots.map(s => ({
+        time: s.time,
+        available: s.available !== false,
+        seats: s.available !== false ? null : 0
+      }))
+    });
+  } else {
+    return res.status(500).json({ error: 'Invalid slots config format.' });
+  }
+
+  // 讀取訂位記錄，動態計算剩餘名額
+  const bookings = await readBookings();
+  const slots = computeSlots(rawSlots, bookings, date);
+
+  res.json({ date: date || null, slots });
+});
+
 app.post('/api/scenario-c/book-now', async (req, res) => {
   try {
     const body = req.body || {};
@@ -225,9 +297,47 @@ app.post('/api/scenario-c/book-now', async (req, res) => {
 
     const normalizedPhone = normalizePhone(contact.phone);
     const bookingDate = String(reservation.bookingDate);
+    const bookingTime = String(reservation.bookingTime);
 
     const result = await withBookingsLock(async () => {
       const bookings = await readBookings();
+
+      // ── 動態名額驗證（在 lock 內，確保並發安全）────────────────────────
+      try {
+        const raw = await fs.readFile(SLOTS_CONFIG_FILE, 'utf8');
+        const config = JSON.parse(raw);
+
+        let rawSlots;
+        if (config.dateOverrides && config.dateOverrides[bookingDate]) {
+          rawSlots = config.dateOverrides[bookingDate];
+        } else if (Array.isArray(config.defaultSlots)) {
+          rawSlots = config.defaultSlots;
+        } else if (Array.isArray(config.slots)) {
+          rawSlots = config.slots.map(s => ({ time: s.time, seats: s.available !== false ? null : 0 }));
+        }
+
+        if (rawSlots) {
+          const computed = computeSlots(rawSlots, bookings, bookingDate);
+          const slotInfo = computed.find(s => s.time === bookingTime);
+          if (slotInfo) {
+            if (!slotInfo.available) {
+              return {
+                seatError: true,
+                message: `Time slot ${bookingTime} is fully booked on ${bookingDate}.`
+              };
+            }
+            if (slotInfo.seats !== null && partySize > slotInfo.seats) {
+              return {
+                seatError: true,
+                message: `Not enough seats: only ${slotInfo.seats} left for ${bookingTime} on ${bookingDate}, but requested party size is ${partySize}.`
+              };
+            }
+          }
+        }
+      } catch (_) {
+        // slots config 讀取失敗，略過名額驗證
+      }
+      // ─────────────────────────────────────────────────────────────────
       const duplicate = bookings.find((item) => {
         const existingPhone = normalizePhone(item && item.contact ? item.contact.phone : '');
         const existingDate = item && item.reservation ? String(item.reservation.bookingDate || '') : '';
@@ -244,7 +354,7 @@ app.post('/api/scenario-c/book-now', async (req, res) => {
         reservation: {
           partySize,
           bookingDate,
-          bookingTime: String(reservation.bookingTime),
+          bookingTime,
           occasion: String(reservation.occasion || ''),
           notes: String(reservation.notes || '')
         },
@@ -263,6 +373,10 @@ app.post('/api/scenario-c/book-now', async (req, res) => {
 
       return { duplicate: false, booking };
     });
+
+    if (result.seatError) {
+      return res.status(422).json({ success: false, message: result.message });
+    }
 
     if (result.duplicate) {
       return res.status(409).json({
