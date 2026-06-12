@@ -440,7 +440,7 @@
       slotsLoading = true;
       renderSlots(); // 顯示 loading 狀態
       try {
-        const url = '/api/scenario-c/slots' + (date ? '?date=' + encodeURIComponent(date) : '');
+        const url = '/api/booking/slots' + (date ? '?date=' + encodeURIComponent(date) : '');
         const res = await fetch(url);
         if (!res.ok) throw new Error('API error ' + res.status);
         const json = await res.json();

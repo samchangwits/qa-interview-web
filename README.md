@@ -300,16 +300,16 @@ curl -s http://127.0.0.1:4040/api/tunnels | python3 -m json.tool
 ### Slots API
 
 ```text
-GET /api/scenario-c/slots?date=YYYY-MM-DD
+GET /api/booking/slots?date=YYYY-MM-DD
 ```
 
 範例：
 
 ```bash
 # 查詢今天的時段
-curl http://localhost:8082/api/scenario-c/slots?date=2026-06-11
+curl http://localhost:8082/api/booking/slots?date=2026-06-11
 
 # 透過 ngrok 查詢（帶跳過警告頁 header）
 curl -H "ngrok-skip-browser-warning: true" \
-  "https://<wits-lab-ngrok-url>/api/scenario-c/slots?date=2026-06-11"
+  "https://<wits-lab-ngrok-url>/api/booking/slots?date=2026-06-11"
 ```

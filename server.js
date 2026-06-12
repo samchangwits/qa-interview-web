@@ -55,15 +55,7 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // Swagger UI for User Management (scenarioD)
 const swaggerDoc = yaml.load(fsSync.readFileSync(path.join(__dirname, 'docs/user-management-swagger.yml'), 'utf8'));
-app.use('/api-docs/user-management', swaggerUi.serve, swaggerUi.setup(swaggerDoc, {
-  customSiteTitle: 'User Management API Docs'
-}));
-
-// Swagger UI for ScenarioA/B - JSON Server (Users & Products)
-const swaggerDocAB = yaml.load(fsSync.readFileSync(path.join(__dirname, 'docs/user-and-product-management-swagger.yml'), 'utf8'));
-app.use('/api-docs/json-server', swaggerUi.serve, swaggerUi.setup(swaggerDocAB, {
-  customSiteTitle: 'SDET Assessment API Docs'
-}));
+app.use('/api-docs/user-management', swaggerUi.serve, swaggerUi.setup(swaggerDoc, { customSiteTitle: 'User Management API Docs' }));
 
 // 根路徑根據 INDEX_MODE 動態回傳對應的 HTML
 app.get('/', (req, res) => {
@@ -194,7 +186,7 @@ function computeSlots(rawSlots, bookings, date) {
   });
 }
 
-app.get('/api/scenario-c/slots', async (req, res) => {
+app.get('/api/booking/slots', async (req, res) => {
   const date = String(req.query.date || '').trim();
 
   // 讀取 slots 設定檔
